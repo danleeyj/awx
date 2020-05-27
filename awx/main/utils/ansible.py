@@ -15,7 +15,7 @@ from django.utils.encoding import smart_str
 logger = logging.getLogger('awx.main.utils.ansible')
 
 
-__all__ = ['skip_directory', 'could_be_playbook', 'could_be_inventory']
+__all__ = ['skip_directory', 'could_be_playbook', 'could_be_any_playbook', 'could_be_inventory']
 
 
 valid_playbook_re = re.compile(r'^\s*?-?\s*?(?:hosts|include|import_playbook):\s*?.*?$')
@@ -70,6 +70,25 @@ def could_be_playbook(project_path, dir_path, filename):
         return None
     return os.path.relpath(playbook_path, smart_str(project_path))
 
+def could_be_any_playbook(project_path, dir_path, filename):
+    if os.path.splitext(filename)[-1] not in ['.yml', '.yaml']:
+        return None
+    playbook_path = os.path.join(dir_path, filename)
+    # Filter files that do not have either hosts or top-level
+    # includes. Use regex to allow files with invalid YAML to
+    # show up.
+    try:
+        for n, line in enumerate(codecs.open(
+            playbook_path,
+            'r',
+            encoding='utf-8',
+            errors='ignore'
+        )):
+            pass
+    except IOError:
+        logger.exception(f'failed to open {playbook_path}')
+        return None
+    return os.path.relpath(playbook_path, smart_str(project_path))
 
 def could_be_inventory(project_path, dir_path, filename):
     # Decisions based exclusively on filename

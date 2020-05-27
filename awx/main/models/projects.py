@@ -36,7 +36,7 @@ from awx.main.models.mixins import (
     RelatedJobsMixin
 )
 from awx.main.utils import update_scm_url
-from awx.main.utils.ansible import skip_directory, could_be_inventory, could_be_playbook
+from awx.main.utils.ansible import skip_directory, could_be_inventory, could_be_playbook, could_be_any_playbook
 from awx.main.fields import ImplicitRoleField
 from awx.main.models.rbac import (
     ROLE_SINGLETON_SYSTEM_ADMINISTRATOR,
@@ -203,7 +203,7 @@ class ProjectOptions(models.Model):
                 if skip_directory(dirpath):
                     continue
                 for filename in filenames:
-                    playbook = could_be_playbook(project_path, dirpath, filename)
+                    playbook = could_be_any_playbook(project_path, dirpath, filename)
                     if playbook is not None:
                         results.append(smart_text(playbook))
         return sorted(results, key=lambda x: smart_str(x).lower())
