@@ -467,7 +467,7 @@ msgstr ""
 msgid "This field is required."
 msgstr ""
 
-#: awx/api/serializers.py:2798
+#: awx/api/serializers.py:2812
 msgid "Playbook not found for project."
 msgstr ""
 
@@ -485,6 +485,17 @@ msgstr ""
 
 #: awx/api/serializers.py:2844
 msgid "Must match the selected webhook service."
+
+#: awx/api/serializers.py:2810
+msgid "Playbook not valid."
+msgstr ""
+
+#: awx/api/serializers.py:2808
+msgid "Must use yaml or yml type file."
+msgstr ""
+
+#: awx/api/serializers.py:2973
+msgid "Must select playbook for project."
 msgstr ""
 
 #: awx/api/serializers.py:2915

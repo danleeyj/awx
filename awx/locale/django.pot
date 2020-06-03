@@ -481,6 +481,17 @@ msgstr ""
 
 #: awx/api/serializers.py:2841
 msgid "Must be a Personal Access Token."
+
+#: awx/api/serializers.py:2812
+msgid "Playbook not found for project."
+msgstr ""
+
+#: awx/api/serializers.py:2810
+msgid "Playbook not valid."
+msgstr ""
+
+#: awx/api/serializers.py:2808
+msgid "Must use yaml or yml type file."
 msgstr ""
 
 #: awx/api/serializers.py:2844

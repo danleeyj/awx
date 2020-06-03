@@ -15,7 +15,6 @@ from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.utils.timezone import now, make_aware, get_default_timezone
 
-
 # AWX
 from awx.api.versioning import reverse
 from awx.main.models.base import PROJECT_UPDATE_JOB_TYPE_CHOICES, PERM_INVENTORY_DEPLOY
@@ -36,7 +35,8 @@ from awx.main.models.mixins import (
     RelatedJobsMixin
 )
 from awx.main.utils import update_scm_url
-from awx.main.utils.ansible import skip_directory, could_be_inventory, could_be_playbook
+from awx.main.utils.ansible import skip_directory, could_be_inventory, could_be_playbook, \
+    could_be_non_yaml_playbook, could_be_invalid_playbook
 from awx.main.fields import ImplicitRoleField
 from awx.main.models.rbac import (
     ROLE_SINGLETON_SYSTEM_ADMINISTRATOR,
@@ -48,7 +48,6 @@ __all__ = ['Project', 'ProjectUpdate']
 
 
 class ProjectOptions(models.Model):
-
     SCM_TYPE_CHOICES = [
         ('', _('Manual')),
         ('git', _('Git')),
@@ -208,6 +207,47 @@ class ProjectOptions(models.Model):
                         results.append(smart_text(playbook))
         return sorted(results, key=lambda x: smart_str(x).lower())
 
+    @property
+    def invalid_playbooks(self):
+        results = []
+        project_path = self.get_project_path()
+        if project_path:
+            for dirpath, dirnames, filenames in os.walk(smart_str(project_path), followlinks=True):
+                if skip_directory(dirpath):
+                    continue
+                for filename in filenames:
+                    playbook = could_be_invalid_playbook(project_path, dirpath, filename)
+                    if playbook is not None:
+                        results.append(smart_text(playbook))
+        return sorted(results, key=lambda x: smart_str(x).lower())
+
+    @property
+    def non_yaml_playbooks(self):
+        results = []
+        project_path = self.get_project_path()
+        if project_path:
+            for dirpath, dirnames, filenames in os.walk(smart_str(project_path), followlinks=True):
+                if skip_directory(dirpath):
+                    continue
+                for filename in filenames:
+                    playbook = could_be_non_yaml_playbook(project_path, dirpath, filename)
+                    if playbook is not None:
+                        results.append(smart_text(playbook))
+        return sorted(results, key=lambda x: smart_str(x).lower())
+
+    @property
+    def all_playbooks(self):
+        results = []
+        project_path = self.get_project_path()
+        if project_path:
+            for dirpath, dirnames, filenames in os.walk(smart_str(project_path), followlinks=True):
+                if skip_directory(dirpath):
+                    continue
+                for filename in filenames:
+                    playbook = os.path.relpath(os.path.join(dirpath, filename), smart_str(project_path))
+                    if playbook is None:
+                        results.append(smart_text(playbook))
+        return sorted(results, key=lambda x: smart_str(x).lower())
 
     @property
     def inventories(self):
@@ -287,6 +327,24 @@ class Project(UnifiedJobTemplate, ProjectOptions, ResourceMixin, CustomVirtualEn
         help_text=_('List of playbooks found in the project'),
     )
 
+
+    invalid_playbook_files = JSONField(
+        blank=True,
+        default=[],
+        editable=False,
+        verbose_name=_('Invalid Playbook Files'),
+        help_text=_('List of invalid playbooks found in the project'),
+    )
+
+
+    nonyaml_playbook_files = JSONField(
+        blank=True,
+        default=[],
+        editable=False,
+        verbose_name=_('Playbook Files'),
+        help_text=_('List of non yaml playbooks found in the project'),
+    )
+
     inventory_files = JSONField(
         blank=True,
         default=[],
@@ -329,7 +387,8 @@ class Project(UnifiedJobTemplate, ProjectOptions, ResourceMixin, CustomVirtualEn
         if self.pk:
             old_org_id = getattr(self, '_prior_values_store', {}).get('organization_id', None)
             if self.organization_id != old_org_id and self.jobtemplates.exists():
-                raise ValidationError({'organization': _('Organization cannot be changed when in use by job templates.')})
+                raise ValidationError(
+                    {'organization': _('Organization cannot be changed when in use by job templates.')})
         return self.organization
 
     def save(self, *args, **kwargs):
@@ -348,7 +407,7 @@ class Project(UnifiedJobTemplate, ProjectOptions, ResourceMixin, CustomVirtualEn
         # Do the actual save.
         super(Project, self).save(*args, **kwargs)
         if new_instance:
-            update_fields=[]
+            update_fields = []
             # Generate local_path for SCM after initial save (so we have a PK).
             if self.scm_type and not self.local_path.startswith('_'):
                 update_fields.append('local_path')
@@ -431,13 +490,16 @@ class Project(UnifiedJobTemplate, ProjectOptions, ResourceMixin, CustomVirtualEn
         if self.organization is not None:
             error_notification_templates = set(error_notification_templates +
                                                list(base_notification_templates
-                                                    .filter(organization_notification_templates_for_errors=self.organization)))
+                                                    .filter(
+                                                   organization_notification_templates_for_errors=self.organization)))
             started_notification_templates = set(started_notification_templates +
                                                  list(base_notification_templates
-                                                      .filter(organization_notification_templates_for_started=self.organization)))
+                                                      .filter(
+                                                     organization_notification_templates_for_started=self.organization)))
             success_notification_templates = set(success_notification_templates +
                                                  list(base_notification_templates
-                                                      .filter(organization_notification_templates_for_success=self.organization)))
+                                                      .filter(
+                                                     organization_notification_templates_for_success=self.organization)))
         return dict(error=list(error_notification_templates),
                     started=list(started_notification_templates),
                     success=list(success_notification_templates))
@@ -448,6 +510,7 @@ class Project(UnifiedJobTemplate, ProjectOptions, ResourceMixin, CustomVirtualEn
     '''
     RelatedJobsMixin
     '''
+
     def _get_related_jobs(self):
         return UnifiedJob.objects.non_polymorphic().filter(
             models.Q(job__project=self) |
@@ -558,7 +621,8 @@ class ProjectUpdate(UnifiedJob, ProjectOptions, JobNotificationMixin, TaskManage
         return self._result_stdout_raw_limited(start_line, end_line, redact_sensitive=redact_sensitive)
 
     def result_stdout_limited(self, start_line=0, end_line=None, redact_sensitive=True):
-        return self._result_stdout_raw_limited(start_line, end_line, redact_sensitive=redact_sensitive, escape_ascii=True)
+        return self._result_stdout_raw_limited(start_line, end_line, redact_sensitive=redact_sensitive,
+                                               escape_ascii=True)
 
     def get_absolute_url(self, request=None):
         return reverse('api:project_update_detail', kwargs={'pk': self.pk}, request=request)
@@ -576,6 +640,7 @@ class ProjectUpdate(UnifiedJob, ProjectOptions, JobNotificationMixin, TaskManage
     '''
     JobNotificationMixin
     '''
+
     def get_notification_templates(self):
         return self.project.notification_templates
 
