@@ -2277,7 +2277,6 @@ class JobTemplateList(ListCreateAPIView):
     model = models.JobTemplate
     serializer_class = serializers.JobTemplateSerializer
     always_allow_superuser = False
-
     def post(self, request, *args, **kwargs):
         ret = super(JobTemplateList, self).post(request, *args, **kwargs)
         if ret.status_code == 201:

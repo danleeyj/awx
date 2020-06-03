@@ -2793,8 +2793,20 @@ class JobOptionsSerializer(LabelsListMixin, BaseSerializer):
                 ) or
                 (project and not project.scm_type and playbook and force_text(playbook) not in project.playbooks)  # manual
             )
+            playbook_invalid = bool (
+                (playbook_not_found and force_text(playbook) in project.invalid_playbooks) or
+                (playbook_not_found and force_text(playbook) in project.invalid_playbook_files)
+            )
+            playbook_not_yaml = bool (
+                (playbook_not_found and force_text(playbook) in project.non_yaml_playbooks) or
+                (playbook_not_found and force_text(playbook) in project.nonyaml_playbook_files)
+            )
+            if playbook_not_yaml:
+                raise serializers.ValidationError({'playbook': _('Must use yaml or yml type file.')})
+            if playbook_invalid:
+                raise serializers.ValidationError({'playbook': _('Playbook not valid.')})
             if playbook_not_found:
-                raise serializers.ValidationError({'playbook': _('Playbook not found for project.')})
+                raise serializers.ValidationError({'playbook': _('Playbook is not found for project.')})
             if project and not playbook:
                 raise serializers.ValidationError({'playbook': _('Must select playbook for project.')})
             if scm_branch and not project.allow_override:

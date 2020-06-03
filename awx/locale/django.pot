@@ -485,7 +485,15 @@ msgid "This field is required."
 msgstr ""
 
 #: awx/api/serializers.py:2969 awx/api/serializers.py:2971
-msgid "Playbook not found for project."
+msgid "Playbook is not found for project."
+msgstr ""
+
+#: awx/api/serializers.py:2969 awx/api/serializers.py:2971
+msgid "Playbook not valid."
+msgstr ""
+
+#: awx/api/serializers.py:2969 awx/api/serializers.py:2971
+msgid "Must use yaml or yml type file."
 msgstr ""
 
 #: awx/api/serializers.py:2973
