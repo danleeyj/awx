@@ -337,7 +337,7 @@ class Project(UnifiedJobTemplate, ProjectOptions, ResourceMixin, CustomVirtualEn
     )
 
 
-    nonyaml_playbook_files = JSONField(
+    non_yaml_playbook_files = JSONField(
         blank=True,
         default=[],
         editable=False,
@@ -387,8 +387,7 @@ class Project(UnifiedJobTemplate, ProjectOptions, ResourceMixin, CustomVirtualEn
         if self.pk:
             old_org_id = getattr(self, '_prior_values_store', {}).get('organization_id', None)
             if self.organization_id != old_org_id and self.jobtemplates.exists():
-                raise ValidationError(
-                    {'organization': _('Organization cannot be changed when in use by job templates.')})
+                raise ValidationError({'organization': _('Organization cannot be changed when in use by job templates.')})
         return self.organization
 
     def save(self, *args, **kwargs):
@@ -407,7 +406,7 @@ class Project(UnifiedJobTemplate, ProjectOptions, ResourceMixin, CustomVirtualEn
         # Do the actual save.
         super(Project, self).save(*args, **kwargs)
         if new_instance:
-            update_fields = []
+            update_fields=[]
             # Generate local_path for SCM after initial save (so we have a PK).
             if self.scm_type and not self.local_path.startswith('_'):
                 update_fields.append('local_path')
@@ -490,16 +489,13 @@ class Project(UnifiedJobTemplate, ProjectOptions, ResourceMixin, CustomVirtualEn
         if self.organization is not None:
             error_notification_templates = set(error_notification_templates +
                                                list(base_notification_templates
-                                                    .filter(
-                                                   organization_notification_templates_for_errors=self.organization)))
+                                                    .filter(organization_notification_templates_for_errors=self.organization)))
             started_notification_templates = set(started_notification_templates +
                                                  list(base_notification_templates
-                                                      .filter(
-                                                     organization_notification_templates_for_started=self.organization)))
+                                                      .filter(organization_notification_templates_for_started=self.organization)))
             success_notification_templates = set(success_notification_templates +
                                                  list(base_notification_templates
-                                                      .filter(
-                                                     organization_notification_templates_for_success=self.organization)))
+                                                      .filter(organization_notification_templates_for_success=self.organization)))
         return dict(error=list(error_notification_templates),
                     started=list(started_notification_templates),
                     success=list(success_notification_templates))
@@ -510,7 +506,6 @@ class Project(UnifiedJobTemplate, ProjectOptions, ResourceMixin, CustomVirtualEn
     '''
     RelatedJobsMixin
     '''
-
     def _get_related_jobs(self):
         return UnifiedJob.objects.non_polymorphic().filter(
             models.Q(job__project=self) |
@@ -621,8 +616,7 @@ class ProjectUpdate(UnifiedJob, ProjectOptions, JobNotificationMixin, TaskManage
         return self._result_stdout_raw_limited(start_line, end_line, redact_sensitive=redact_sensitive)
 
     def result_stdout_limited(self, start_line=0, end_line=None, redact_sensitive=True):
-        return self._result_stdout_raw_limited(start_line, end_line, redact_sensitive=redact_sensitive,
-                                               escape_ascii=True)
+        return self._result_stdout_raw_limited(start_line, end_line, redact_sensitive=redact_sensitive, escape_ascii=True)
 
     def get_absolute_url(self, request=None):
         return reverse('api:project_update_detail', kwargs={'pk': self.pk}, request=request)
@@ -640,7 +634,6 @@ class ProjectUpdate(UnifiedJob, ProjectOptions, JobNotificationMixin, TaskManage
     '''
     JobNotificationMixin
     '''
-
     def get_notification_templates(self):
         return self.project.notification_templates
 
