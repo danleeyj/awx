@@ -21,8 +21,14 @@ def test_is_not_playbook(filename):
     assert could_be_playbook(DATA, path, filename) is None
 
 
+@pytest.mark.parametrize('filename', os.listdir(os.path.join(DATA, 'playbooks', 'valid')))
+def test_could_be_invalid_playbook_on_valid(filename):
+    path = os.path.join(DATA, 'playbooks', 'valid')
+    assert could_be_invalid_playbook(DATA, path, filename).endswith(filename)
+
+
 @pytest.mark.parametrize('filename', os.listdir(os.path.join(DATA, 'playbooks', 'invalid')))
-def test_could_be_invalid_playbook(filename):
+def test_could_be_invalid_playbook_on_invalid(filename):
     path = os.path.join(DATA, 'playbooks', 'invalid')
     assert could_be_invalid_playbook(DATA, path, filename) is None
 
